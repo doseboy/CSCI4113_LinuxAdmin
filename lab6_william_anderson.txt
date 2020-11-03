@@ -1,0 +1,134 @@
+Name: William Anderson
+Date: Apr 2 2020
+Assignment: Lab 6
+Class: CSCI 4113
+Professor: CJ Herman
+
+On All Machines:
+1. Allow all traffic to and from the local loopback adapter lo, so each machine can talk to itself.
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -I INPUT 1 -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+2. Allow inbound icmp traffic for echo-request, echo-reply (ping), time-exceeded (traceroute), or destination-unreachable.  (This lets ping and traceroute work but drops other commonly abused icmp packets.)
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT
+
+3. On all machines, except Machine E, allow inbound ssh connections from the 100.64.0.0/16, 10.21.32.0/24, and 198.18.0.0/16 subnets.  (This limits the subnets from which ssh can be initiated).
+iptables -A INPUT -p tcp -s 100.64.0.0/16 --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp -s 10.21.32.0/24 --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp -s 198.18.0.0/16 --dport 22 -j ACCEPT
+
+4. All machines should implement a default deny policy for inbound traffic.
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+service iptables save
+
+5. Machines should also prevent bad actors from "bouncing" or forwarding packets through them if they're not intended as routers.  This should be done both with ip forwarding disabled in the kernel and through the forward chain.
+On all machines except machine a:
+echo 0 > /proc/sys/net/ipv4/ip_forward
+
+
+Machine A/Router:
+1.Allow the appropriate DHCP traffic to/from 100.64.N.0/24 & 10.21.32.0/24 (So your other machines can get their configs).
+iptables -I INPUT -p udp -s 100.64.38.0/24 --dport 67:68 --sport 67:68 -j ACCEPT
+iptables -I INPUT -p udp -d 100.64.38.0/24 --dport 67:68 --sport 67:68 -j ACCEPT
+iptables -I INPUT -p udp -s 10.21.32.0/24 --dport 67:68 --sport 67:68 -j ACCEPT
+iptables -I INPUT -p udp -d 10.21.32.0/24 --dport 67:68 --sport 67:68 -j ACCEPT
+
+2.Deny your users access to Facebook from any machine on your network.  You need not block all Facebook IP addresses, just the one you receive from a one-time resolve of facebook.com.  To go above and beyond the requirements by blocking all Facebook IP addresses, get a list as follows:
+yum install jwhois
+whois -h whois.radb.net '!gAS32934'
+iptables -A FORWARD -s 157.240.28.35 -j DROP
+iptables -A FORWARD -d 157.240.28.35 -j DROP
+
+3. Deny your users access to icanhas.cheezburger.com and cheezburger.com.  Again, you need not block all such IP addresses, just the ones you receive from a one-time resolve.
+iptables -A FORWARD -s 216.176.186.210 -j DROP
+iptables -A FORWARD -d 216.176.186.210 -j DROP
+service iptables save
+
+4. Only forward packets to/from machines behind the router, based on the intended purpose of that specific machine.  In other words, there should be rules on Machine A that mimic the rules for Machines B-F.  This is an added layer of security in case the firewall on one of the other machines is inadvertently dropped.
+iptables -A FORWARD -p tcp -d 100.64.38.2 --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -p tcp -d 100.64.38.2 --dport 443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -p tcp -d 100.64.38.4 --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -p tcp -d 100.64.38.4 --dport 443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -p tcp -d 100.64.38.3 --dport 21 -s 100.64.0.0/16 -j ACCEPT
+iptables -A FORWARD -p udp -s 100.64.38.3 -d 100.64.38.4 --dport 53 -j ACCEPT
+iptables -A FORWARD -p tcp -s 100.64.38.3 --sport 21 -j ACCEPT
+iptables -A FORWARD -p tcp -s 100.64.38.3 --sport 80 -j ACCEPT
+iptables -A FORWARD -p tcp -s 100.64.38.3 --sport 443 -j ACCEPT
+iptables -A FORWARD -p tcp -s 100.64.38.3 --sport 22 -j ACCEPT
+iptables -A FORWARD -p icmp -s 100.64.38.3 --icmp-type 8 -j ACCEPT
+iptables -A FORWARD -p icmp -s 100.64.38.3 --icmp-type 0 -j ACCEPT
+iptables -A FORWARD -p icmp -s 100.64.38.3 --icmp-type 11 -j ACCEPT
+iptables -A FORWARD -p icmp -s 100.64.38.3 --icmp-type 3 -j ACCEPT
+iptables -A FORWARD -p udp -d 100.64.38.4 --sport 53 -j ACCEPT
+iptables -A FORWARD -p udp -d 100.64.38.4 --dport 53 -j ACCEPT
+iptables -A FORWARD -p tcp -d 10.21.32.2 -s 10.21.32.0/24 --dport 445 -j ACCEPT
+iptables -A FORWARD -p udp -d 10.21.32.2 -s 10.21.32.0/24 --dport 137 -j ACCEPT
+iptables -A FORWARD -p udp -d 10.21.32.2 -s 10.21.32.0/24 --dport 138 -j ACCEPT
+iptables -A FORWARD -p udp -d 10.21.32.2 -s 10.21.32.0/24 --dport 139 -j ACCEPT
+iptables -A FORWARD -p tcp -d 10.21.32.2 -s 10.21.32.0/24 --dport 135 -j ACCEPT
+iptables -A FORWARD -p tcp -d 10.21.32.2 -s 10.21.32.0/24 --dport 22 -j ACCEPT
+iptables -A FORWARD -p tcp -d 10.21.32.2 -s 100.64.38.1 --dport 22 -j ACCEPT
+service iptables save
+
+5. Default policy:
+iptables -P INPUT DROP
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+service iptables save
+
+Machines B (Carriage) & F (Saddle):
+1. Allow inbound http and https requests from any source IP.
+iptables -A INPUT -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+service iptables save
+
+
+Machine C/Platen:
+1. Unlike the other machines, the default outbound policy for Machine C should be deny.
+iptables -P OUTPUT DROP
+
+2. Allow ftp connections only from 100.64.0.0/16.
+iptables -A INPUT -p tcp --dport 21 -s 100.64.0.0/16 -j ACCEPT
+
+3. Allow dns requests to 100.64.N.4 (chase).
+iptables -A OUTPUT -p udp -d 100.64.38.4 --dport 53 -j ACCEPT
+
+4. Allow outbound ftp, http, https, and ssh connections to any host.
+iptables -A OUTPUT -p tcp --sport 21 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 443 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 22 -j ACCEPT
+
+5. Allow outbound icmp traffic only for icmp-types echo-request, echo-reply (ping), time-exceeded (traceroute), or destination-unreachable.
+iptables -A OUTPUT -p icmp --icmp-type 8 -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type 0 -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type 11 -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type 3 -j ACCEPT
+service iptables save
+
+
+Machine D/Chase:
+1. Allow DNS queries from any source.
+iptables -A INPUT -p udp --sport 53 -j ACCEPT
+iptables -A INPUT -p udp --dport 53 -j ACCEPT
+service iptables save
+
+
+Machine E/Roller:
+1. Restrict connections to the file sharing services (CIFS and SMB) from the 10.21.32.0/24 network only.  CIFS and SMB use port numbers: 135/tcp, 137-139/udp, and 445/tcp.
+iptables -A INPUT -p tcp -s 10.21.32.0/24 --dport 445 -j ACCEPT
+iptables -A INPUT -p udp -s 10.21.32.0/24 --dport 137 -j ACCEPT
+iptables -A INPUT -p udp -s 10.21.32.0/24 --dport 138 -j ACCEPT
+iptables -A INPUT -p udp -s 10.21.32.0/24 --dport 139 -j ACCEPT
+iptables -A INPUT -p tcp -s 10.21.32.0/24 --dport 135 -j ACCEPT
+
+2. Allow SSH connections only from hosts in the 10.21.32.0/24 subnet.
+iptables -A INPUT -p tcp -s 10.21.32.0/24 --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp -s 100.64.38.1 --dport 22 -j ACCEPT
+service iptables save

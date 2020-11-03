@@ -1,0 +1,166 @@
+Name: William Anderson
+Date: Apr 2 2020
+Assignment: Lab 5
+Class: CSCI 4113
+Professor: CJ Herman
+
+1. Use a console to enter into machine F:
+	a. ip addr show
+	b. Get the MAC adress from the eno16780032
+	c. cd etc/sysconfig/network-scripts/
+	d. vi ifcfg-eno16780032
+	e. change ONBOOT=yes
+	f. exit
+
+2. SSH into machine A:
+	a. yum install dhcp
+	b. vi etc/dhcp/dhcpd.conf
+	c. cut and paste code below into file:
+	subnet 100.64.38.0 netmask 255.255.255.0 {
+		authoritative;
+		range 100.64.38.0 100.64.38.254;
+	}
+	host machinef {
+		hardware ethernet 00:50:56:b4:5a:c8;
+		fixed-address 100.64.38.5;
+		option host-name machinef;
+	}
+	d. systemctl restart dhcpd
+
+3. SSH into machine F from machine A:
+	a. route add default gw 100.64.N.1
+	b. yum install dhcp
+	c. yum install rsync
+	d. yum install httpd
+	e. exit
+
+4. SSH into machine B:
+	a. yum install rsync
+	b. yum install dhcp
+	c. exit
+
+5. SSH into machine C:
+	a. yum install dhcp
+	b. exit
+
+6. SSH into machine D:
+	a. yum install dhcp
+	b. exit
+
+7. SSH into machine F:
+	a. rsync -a root@100.64.38.2:/etc/sudoers ../etc/
+	b. rsync -a root@100.64.38.2:/etc/group ../etc/
+	c. rsync -a root@100.64.38.2:/etc/passwd ../etc/
+	d. rsync -a root@100.64.38.2:/etc/shadow ../etc/
+	e. crontab -e
+	f. You will be in vi editor and enter this below:
+	*/30 * * * * rsync -avz root@100.64.38.2:/var/www/ /var/www
+	g. Type: :wq
+	h. ssh-keygen
+	i. Press enter button three times
+	j. ssh-copy-id -i ~/.ssh/id_rsa.pub 100.64.38.2
+	k. exit
+
+8. SSH into machine E:
+	a. yum install dhcp
+	b. exit
+
+9. SSH into machine F:
+	a. vi /var/log/cron
+	b. Go to bottom of file and see if rsync command ran.
+	c. cd /var/www/
+	d. ls
+	e. exit	
+
+10. vi etc/dhcp/dhcpd.conf
+	a. dhcpd.conf should be updated as this:
+	default-lease-time 5;
+	max-lease-time 10;
+	#subnet dec for DMZ Network Switch 1
+	subnet 100.64.38.0 netmask 255.255.255.0 {
+		authoritative;
+		range 100.64.38.0 100.64.38.254;
+		option domain-name-servers 100.64.38.4;
+		option domain-name "dundermifflin.com";
+	}
+
+	#subnet dec for DMZ Network Switch 0
+	subnet 10.21.32.0 netmask 255.255.255.0 {
+		authoritative;
+		range 10.21.32.0 10.21.32.254;
+	}
+
+	#a
+	host router.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:bb:78;
+		fixed-address 100.64.0.38;
+	}
+
+	#b
+	host carriage.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:45:ad;
+		fixed-address 100.64.38.2;
+	}
+
+	#c
+	host platten.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:7a:90;
+		fixed-address 100.64.38.3;
+	}
+
+	#d
+	host chase.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:6e:f1;
+		fixed-address 100.64.38.4;
+	}
+
+	#e
+	host roller.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:8c:fe;
+		fixed-address 10.21.32.2;
+	}
+
+	#f
+	host saddle.dundermifflin.com {
+		hardware ethernet 00:50:56:b4:5a:c8;
+		fixed-address 100.64.38.5;
+		option host-name machinef;
+	}
+
+11. SSH into machine d:
+	a. yum install bind bind-utils
+	b. vi etc/named.conf
+	c. named.conf should look like this:
+	options {
+		directory       "/var/named";
+		allow-query     { any; };
+		recursion no;
+	};
+
+	zone "dundermifflin.com." {
+		type master;
+		file "dundermifflin.com";
+	};
+
+	include "/etc/named.rfc1912.zones";
+	include "/etc/named.root.key";
+	d. vi var/named/dundermifflin.com
+	e. dundermifflin.com should look like this:
+	$ORIGIN dundermifflin.com.
+	$TTL 60m
+	dundermifflin.com.              IN      SOA     chase.dundermifflin.com. hostmaster.dundermifflin.com. ( 20200401 1h 15m 1h 1h )
+					IN      NS      chase.dundermifflin.com.
+	router                          IN      A       100.64.0.38
+	carriage                        IN      A       100.64.38.2
+	platen                          IN      A       100.64.38.3
+	chase                           IN      A       100.64.38.4
+	roller                          IN      A       10.21.32.2
+	saddle                          IN      A       100.64.38.5
+	f.systemctl restart named
+	
+12. SSH into machine f:
+	a. vi etc/hostname
+	b. Delete whatever is there and change to:
+	machinef.dundermifflin.com
+	c.exit
+

@@ -1,0 +1,39 @@
+Name: William Anderson
+Date: March 2 2020
+Assignment: Lab 4
+
+1. Email Jim telling him our PPP is to not allow everyone administrative access for security
+
+2. MACHINE C: Edit sudoers to allow mpalmer to run systemctl
+mpalmer ALL=(ALL) systemctl restart vsftpd
+after that: chmod 775 /var/ftp/
+then: chown mpalmer:mpalmer /var/ftp/
+
+3. ON MACHINE B: edit sudoers: pbeesly ALL=(ALL) /usr/bin/systemctl restart httpd for Kelly and Andy
+Also do chmod 570 on /var/www/dundermifflin/
+Create group "webg" add pbeesly, abernard, and kkapoor
+chown apache:webg /dundermifflin/
+
+4. vi ~/.bashrc and etc/profile: modify umask to be 770 on A, C, D, E
+ 
+5. Edit access.conf and add line to machine B, C, D:
++ : root : ALL
+Edit access.conf and add lines to machine A:
++ : root : ALL
+- : ALL  : ALL
+Edit access.conf and add line to machine E:
++ : ALL  : ALL
+
+6. ON ALL MACHINES edit sudoers: 
+wanderson ALL=(ALL) ALL 
+dschrute ALL=(ALL) ALL
+
+7. ON ALL MACHINES: edit sudoers: 
+mscott	ALL=(ALL)	/usr/sbin/shutdown +1[2-9][0-9]
+mscott	ALL=(ALL)	/usr/sbin/shutdown -c
+
+8. Edit pwquality.config for all machines and append lines below:
+minlen = 10
+dcredit = 2
+ucredit = 2
+ocredit = 1

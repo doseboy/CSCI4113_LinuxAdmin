@@ -1,0 +1,37 @@
+Name: William Anderson
+Class: CSCI 4113-S20
+Prof: CJ Herman
+Date: 6 Feb 2020
+Assignment: Lab 2
+
+LVM Commands:
+pvcreate /dev/sdb
+vgcreate new /dev/sdb
+lvcreate -n home --size 4G new
+lvcreate -n tmp --size 1G new
+mkfs.xfs /dev/new/home
+mkfs.xfs /dev/new/tmp
+mount /dev/new/home /mnt/home
+mount /dev/new/tmp /mnt/tmp
+cp -a /home/. mnt/home
+cp -a /tmp/. mnt/tmp
+umount /mnt/home
+umount /mnt/tmp
+
+vi etc/fstab
+Entries in fstab:
+/dev/new/home		/mnt/home		xfs	defaults	0 0
+/dev/new/tmp		/mnt/tmp		xfs	defaults	0 0
+
+reboot
+
+Verify that everything is there:
+cd /mnt/home
+cd /mnt/tmp
+lsblk
+
+Delete /home and /tmp:
+rm -rf /home
+rm -rf /tmp
+
+Done!

@@ -1,0 +1,6 @@
+Name: William Anderson
+Class: CSCI 4113-S20
+Prof: CJ Herman
+Date: 18 Feb 2020
+Assignment: Lab 3
+
